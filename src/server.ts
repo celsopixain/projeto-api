@@ -1,5 +1,7 @@
 import fastify from 'fastify'
 import crypto from 'node:crypto'
+import { db } from './database/cliente.ts'
+import { courses } from './database/schema.ts'
 
 const server = fastify({
   logger: {
@@ -12,17 +14,23 @@ const server = fastify({
     },
   },
 })
-
+/*
 const courses = [
   { id: '1', title: 'Curso de Node.js' },
   { id: '2', title: 'Curso de React' },
   { id: '3', title: 'Curso de React Native' },
 ]
-
-server.get('/courses', (request, reply) => {
-  return reply.send({ courses })
+*/
+server.get('/courses', async(request, reply) => {
+  try {
+    const result = await db.select().from(courses)
+    return reply.send({ courses: result })
+  } catch (error) {
+    console.error('Erro ao buscar cursos:', error)
+    return reply.status(500).send({ error: 'Erro interno do servidor' })
+  }
 })
-
+/*
 server.get('/courses/:id', (request, reply) => {
   type Params = {
     id: string
@@ -58,7 +66,12 @@ server.post('/courses', (request, reply) => {
 
   return reply.status(201).send({ courseId })
 })
+*/
+
 
 server.listen({ port: 3333 }).then(() => {
   console.log('HTTP server running!')
+}).catch((err) => {
+  console.error('Erro ao iniciar servidor:', err)
+  process.exit(1)
 })
