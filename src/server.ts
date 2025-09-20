@@ -1,7 +1,8 @@
 import fastify from 'fastify'
 import crypto from 'node:crypto'
-import { db } from './database/cliente.ts'
-import { courses } from './database/schema.ts'
+import { db } from './database/cliente.js'
+import { courses } from './database/schema.js'
+import { eq } from 'drizzle-orm'
 
 const server = fastify({
   logger: {
@@ -23,15 +24,18 @@ const courses = [
 */
 server.get('/courses', async(request, reply) => {
   try {
-    const result = await db.select().from(courses)
+    const result = await db.select({
+      id: courses.id,
+      title: courses.title,
+    }).from(courses)
     return reply.send({ courses: result })
   } catch (error) {
     console.error('Erro ao buscar cursos:', error)
     return reply.status(500).send({ error: 'Erro interno do servidor' })
   }
 })
-/*
-server.get('/courses/:id', (request, reply) => {
+
+server.get('/courses/:id', async (request, reply) => {
   type Params = {
     id: string
   }
@@ -39,15 +43,29 @@ server.get('/courses/:id', (request, reply) => {
   const params = request.params as Params
   const courseId = params.id
 
-  const course = courses.find(course => course.id === courseId)
+  try {
+    const result = await db
+                    .select()
+                    .from(courses)
+                    .where(eq(courses.id, courseId))
 
-  if (course) {
-    return { course }
+    if (result.length > 0) {
+      return reply.send({ course: result[0] })
+    } 
+
+    return reply.status(404).send({ error: 'Curso não encontrado' })
+    
+  } catch (error) {
+    console.error('Erro ao buscar curso:', error)
+    return reply.status(500).send({ error: 'Erro interno do servidor' })
   }
 
-  return reply.status(404).send()
+
+
+
+  
 })
- 
+ /*
 server.post('/courses', (request, reply) => {
   type Body = {
     title: string
